@@ -1,0 +1,66 @@
+# Copies the KHQRPay skill from khqrpay.dev, where it's built from the docs, into skills/khqrpay/, and commits only
+# when it changed. The site's discovery index gives the archive's address and its SHA-256 digest; a download that
+# doesn't match is refused, so a bad copy is never committed. Reading these files touches no database on the site.
+# Free on a public repository.
+name: Sync the skill from khqrpay.dev
+
+on:
+  schedule:
+    - cron: "17 3 * * *" # every day at 03:17 UTC
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: sync-skill
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      SITE: https://khqrpay.dev
+      INDEX: /.well-known/agent-skills/index.json
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Download the skill and check its digest
+        id: download
+        run: |
+          set -euo pipefail
+          status=$(curl -sS --retry 3 -o "$RUNNER_TEMP/index.json" -w '%{http_code}' "$SITE$INDEX")
+          if [ "$status" = "404" ]; then
+            echo "::notice::$SITE hasn't published the skill. Nothing to copy."
+            echo "published=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if [ "$status" != "200" ]; then
+            echo "::error::$SITE$INDEX answered $status."
+            exit 1
+          fi
+          entry=$(jq -ec '.skills[] | select(.name == "khqrpay")' "$RUNNER_TEMP/index.json")
+          archive=$(echo "$entry" | jq -er '.url')
+          digest=$(echo "$entry" | jq -er '.digest' | sed 's/^sha256://')
+          curl -fsS --retry 3 "$SITE$archive" -o "$RUNNER_TEMP/khqrpay.zip"
+          echo "$digest  $RUNNER_TEMP/khqrpay.zip" | sha256sum -c -
+          mkdir -p "$RUNNER_TEMP/skill"
+          unzip -q "$RUNNER_TEMP/khqrpay.zip" -d "$RUNNER_TEMP/skill"
+          test -f "$RUNNER_TEMP/skill/SKILL.md"
+          mkdir -p skills/khqrpay
+          rsync -a --delete "$RUNNER_TEMP/skill/" skills/khqrpay/
+          echo "published=true" >> "$GITHUB_OUTPUT"
+
+      - name: Commit if it changed
+        if: steps.download.outputs.published == 'true'
+        run: |
+          set -euo pipefail
+          git add -A skills/khqrpay
+          if git diff --cached --quiet; then
+            echo "The skill hasn't changed."
+            exit 0
+          fi
+          git -c user.name="github-actions[bot]" -c user.email="41898699+github-actions[bot]@users.noreply.github.com" \
+            commit -m "Sync the KHQRPay skill from khqrpay.dev"
+          git push

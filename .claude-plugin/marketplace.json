@@ -1,0 +1,15 @@
+{
+  "name": "khqrpay",
+  "description": "The KHQRPay plugin for Claude Code: KHQR payments in Cambodia, from khqrpay.dev",
+  "owner": {
+    "name": "KHQRPay",
+    "url": "https://khqrpay.dev"
+  },
+  "plugins": [
+    {
+      "name": "khqrpay",
+      "source": "./",
+      "description": "Take KHQR payments in Cambodia with the KHQRPay API: create payments, verify signed webhooks, test mode and going live."
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+KHQRPay Agent Skill (khqrpay.dev). All rights reserved, except as follows.
+
+You may use this skill with any AI agent or tool to build software that works with KHQRPay.
+
+You may copy, change and use the code samples, including the code in the reference files, in your own software, for any purpose, with no need to credit KHQRPay.
+
+You may share unchanged, complete copies of this skill, including this file, so that others can use it as above, but not as part of another product, service, skill or website.
+
+You may not publish the documentation text, in whole or in large part, as part of another product, service, skill or website.
+
+The skill is provided as is, without warranty of any kind. The KHQRPay Terms of Service at https://khqrpay.dev/terms apply to the API itself.

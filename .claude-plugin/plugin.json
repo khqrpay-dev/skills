@@ -1,0 +1,20 @@
+{
+  "name": "khqrpay",
+  "displayName": "KHQRPay",
+  "description": "Take KHQR payments in Cambodia with the KHQRPay API: create payments, show the KHQR or hosted checkout, verify signed webhooks, test mode and going live.",
+  "author": {
+    "name": "KHQRPay",
+    "url": "https://khqrpay.dev"
+  },
+  "license": "Proprietary. skills/khqrpay/LICENSE.txt has complete terms",
+  "homepage": "https://khqrpay.dev/docs",
+  "repository": "https://github.com/khqrpay-dev/skills",
+  "keywords": [
+    "khqr",
+    "cambodia",
+    "payments",
+    "bakong",
+    "aba",
+    "webhooks"
+  ]
+}
