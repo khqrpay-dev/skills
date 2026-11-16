@@ -24,7 +24,7 @@ The store’s name, logo, brand colour and default checkout language come from *
 
 A link can’t be changed once it’s made. To change its title, description or price, create a new link and deactivate the old one (see [Deactivating a link](https://khqrpay.dev/docs/payment-links#deactivate)). The new link has a new address, so share it again.
 
-Each link in the list has *Copy link*, which copies its address, and *Details*, which shows its title, price, description, address and when it was made. For a price in the other currency than your ABA payment link’s, *Details* also shows what the QR asks for and the locked rate.
+Each link in the list has *Copy link*, which copies its address, and *Details*, which shows its title, price, description, address and when it was made. For a price in the other currency than your ABA payment link’s, *Details* also shows what the QR asks for and the rate: the one locked when you saved the link, or today’s rate for a link a currency switch left in the other currency.
 
 ## What the payer sees
 
@@ -44,7 +44,12 @@ If KHQRPay blocks an account, for example after a report, its links answer as un
 
 Every QR asks for the currency of your ABA payment link. A price in the other currency is converted at KHQRPay’s rate, locked when you save the link, for a fixed price and an amount the payer enters alike. The page shows the price with what the QR charges under it, and for an amount the payer enters, the currency it’s paid in and the rate. How amounts convert and round is in [Currency and conversion](https://khqrpay.dev/docs/payments#currency).
 
-If you connect an ABA payment link in the other currency, links you made before keep their price and their address, and their QRs ask for the new link’s currency. A price already in that currency is charged as it is. A price in the other currency is converted at KHQRPay’s rate when the payer presses *Continue to pay*, not at a locked one, and has to be within the new link’s maximum. Their page can still show the amount from before the change, or no converted amount at all; the checkout the payer opens shows what the QR charges. To lock today’s rate and show it on the page, create a new link and deactivate the old one.
+If you connect an ABA payment link in the other currency, links you made before keep their price and their address, and their QRs ask for the new link’s currency:
+
+- **A price already in that currency** is charged as it is.
+- **A price in the other currency** is converted at KHQRPay’s rate when the payer presses *Continue to pay*, not at a locked one, and has to be within the new link’s maximum.
+- **What shows where:** the link’s page shows what the QR will charge now, at today’s rate where a price is converted, and *Details* in the dashboard shows the same charge and today’s rate. The list of links still shows the price you saved.
+- **To lock a rate instead,** create a new link and deactivate the old one.
 
 ## Knowing a link was paid
 
@@ -57,15 +62,31 @@ In the [payment object](https://khqrpay.dev/docs/payments#object), as webhooks a
 ## Limits
 
 - **Links per store.** Up to 500, counting deactivated ones, since a link can’t be deleted. At 500, *Create link* says so; add another store for more.
-- **Your plan.** A paid link payment counts toward your plan’s paid transactions like any live payment. Before a link makes a QR, the open live QRs on your links count against what’s left, as well as your own; your API and dashboard creates count only their own. On Free, a paid link payment also counts toward the ABA payment link’s Free transactions for the month. When none are left, a payer who presses *Continue to pay* is told the shop can’t take payments right now. See [Check usage](https://khqrpay.dev/docs/errors-and-limits#usage).
-- **What links don’t use up.** QRs on links don’t count toward the live QRs your account can hold open, or leave unpaid in a day, from the API and the dashboard. So visitors on your links can’t stop your own creates, and those limits don’t stop your links. See [Rate limits](https://khqrpay.dev/docs/errors-and-limits#limits).
-- **Each link’s own caps.** A link limits the QRs that can be open on it at once, from one browser, from one network and in all; the QRs it can leave unpaid in an hour, in all and from one network; and how often *Continue to pay* can be pressed in a minute, from one network and across the store’s links. A payer over one is told why on the page, and when to try again.
-- **A full link.** Once a link has had as many QRs left unpaid in an hour as it allows, it turns new payers away until the next hour, and its page says until when. A Telegram group linked to the store hears it once a day for that link, as “Payment link full”. A QR that’s paid frees its place. Real buyers usually pay, so someone may be flooding the link: deactivate it and share a new one.
+- **Your plan.** A paid link payment counts toward your plan’s paid transactions like any live payment. Before a link makes a QR, the open live QRs on your links count against what’s left, as well as your own; your API and dashboard creates count only their own.
+- **On Free,** a paid link payment also counts toward this month’s Free transactions of the ABA account your ABA payment link pays into, which all of that account’s payment links share. When none are left, a payer who presses *Continue to pay* is told the shop can’t take payments right now. See [Check usage](https://khqrpay.dev/docs/errors-and-limits#usage).
+- **What links don’t use up.** QRs on links don’t count toward the live QRs your account can hold open, or leave unpaid in a day, from the API and the dashboard. So visitors on your links can’t stop your own creates. Link QRs have a day of their own instead: the same number of unpaid live QRs across all your links. See [Rate limits](https://khqrpay.dev/docs/errors-and-limits#limits).
+
+**Each link’s own caps.** A payer over one is told why on the page, and when to try again:
+
+| Cap | What it counts | What the payer is told |
+| --- | --- | --- |
+| Open QRs from one browser | QRs open on this link at once from the same browser | They already have open QRs for this link: pay one, or wait a few minutes for them to expire |
+| Open QRs from one network | QRs open on this link at once from the same internet connection | Many people on their connection are paying with this link: wait a little, or switch between Wi-Fi and mobile data |
+| Open QRs in all | QRs open on this link at once | Too many tries: wait a minute |
+| Unpaid QRs in an hour, from one network | QRs left unpaid on this link this hour from the same connection | Too many went unpaid from their connection: try again after the time shown, or switch between Wi-Fi and mobile data |
+| Unpaid QRs in an hour, in all | QRs left unpaid on this link this hour | The link can’t take new payments until the time shown (see A full link) |
+| Presses of *Continue to pay* in a minute | Presses from one network, on this link and on all links, and from everyone across the store’s links | Too many tries: wait a minute |
+
+- **Busy hours on Free.** On Free, links can also wait for the next hour when very many Free accounts are making live QRs at once; paid plans never do.
+- **A full link.** Once a link has had as many QRs left unpaid in an hour as it allows, it turns new payers away until the next hour, and its page says until when. A QR that’s paid frees its place. Real buyers usually pay, so someone may be flooding the link: deactivate it, and share a new one if you need one.
+- **Who hears about it.** A Telegram group linked to the store hears it once a day for that link, as “Payment link full”.
+- **All your links full.** Once your links together have left the day’s unpaid QRs (see [Rate limits](https://khqrpay.dev/docs/errors-and-limits#limits)), every link turns new payers away, and a new link would too, until one of those QRs is paid or the day starts again in the morning, Cambodia time. The payer is told the shop’s payment links can’t take more payments today.
+- **On Free** a full link usually means all your links are full, since the two fill together, and the group’s notice says “Payment links full for today”.
 
 ## Deactivating a link
 
 Open the link’s *Details* and choose *Deactivate*. Its address keeps working, but the page says “This payment link is no longer active.” and has no *Continue to pay* button, and the list marks it *Inactive*. A QR a payer already has can still be paid. *Activate*, in the same place, turns it back on.
 
-Links can’t be deleted. *Pause live payments* in *Store settings*, or disconnecting the ABA payment link, stops new payments on all of the store’s links at once: a payer who presses *Continue to pay* is then told the shop can’t take payments right now. See [Going live](https://khqrpay.dev/docs/going-live).
+Links can’t be deleted. *Pause live payments* in *Store settings*, disconnecting the ABA payment link, or a link whose QRs now pay a different ABA account from the one it was connected with, stops new payments on all of the store’s links at once: a payer who presses *Continue to pay* is then told the shop can’t take payments right now. See [Going live](https://khqrpay.dev/docs/going-live).
 
 For AI tools: every docs page is listed in [llms.txt](https://khqrpay.dev/llms.txt).

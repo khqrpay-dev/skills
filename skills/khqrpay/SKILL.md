@@ -21,9 +21,11 @@ KHQRPay is a REST API for KHQR payments in Cambodia. The merchant’s server cre
 ## Rules that bite
 
 - **The raw body.** The signature covers the exact bytes. Read the raw request body and verify `X-KHQRPay-Signature` (`t=<unix seconds>,v1=<hex>`, the HMAC-SHA256 of `<t>.<raw body>` keyed with the endpoint’s `whsec_` secret) before any JSON parser or body-parsing middleware touches it. Compare in constant time. A missing or malformed header gets a 400, never a crash.
+- **A missing secret.** If the endpoint’s signing secret is unset or empty, refuse every event: HMAC accepts an empty key, so anyone could sign one.
 - **5-minute tolerance.** Reject a timestamp more than 5 minutes from the current time. The SDKs’ `constructEvent` (Python: `construct_event`) checks both and throws on a bad signature: catch that and answer 400.
 - **Retries and duplicates.** Answer 2xx within 10 seconds and do slow work afterwards. Anything else is retried on a live endpoint, 9 attempts at most over about 16 hours. Events can arrive twice or out of order: deduplicate on the event `id`, never on the payment id.
-- **429 and Retry-After.** On 429 `rate_limited`, wait `Retry-After` seconds, then retry. A `Retry-After` longer than a minute is a day-long limit: fail the call instead of waiting. On 503 `temporarily_unavailable`, wait `Retry-After` seconds too. On 500, 502 and 503, retry with the same `Idempotency-Key`.
+- **429 and Retry-After.** On 429 `rate_limited`, wait `Retry-After` seconds, then retry. A `Retry-After` longer than a minute is an hour-long or day-long limit: fail the call instead of waiting. On 503 `temporarily_unavailable`, wait `Retry-After` seconds too. On 500, 502 and 503, retry with the same `Idempotency-Key`.
+- **New Free accounts.** Until a Free account’s first real payment, it can leave fewer unpaid live QRs a day (see references/errors-and-limits.md). The real $0.01 payment in going live lifts it.
 - **Never poll in a loop.** Reads are counted per account per day, so follow payments by webhooks. Read `GET /v1/payments/:id` only to check one payment, such as before cancelling an order.
 - **Error codes.** Errors are `{"error": "<code>", "message": "<text>"}`. Branch on the code, never on the message.
 - **Payment links.** A payment made through a KHQRPay payment link has `reference_id` `link:<id>`. If it isn’t one of your orders, answer 2xx.

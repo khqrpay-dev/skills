@@ -7,7 +7,7 @@ Endpoint URLs must use https and resolve to public internet addresses. We refuse
 | Event | When |
 | --- | --- |
 | `payment.completed` | The payment is paid, including late approvals (late: true). Fulfil the order here |
-| `payment.scanned` | The customer scanned the QR. Not paid yet, and expires_at has moved |
+| `payment.scanned` | The customer scanned the QR. Not paid yet. expires_at is now at least 2 minutes after the scan, so read it again |
 | `payment.expired` | Not paid in time, which includes a declined or cancelled payment. Usually final, but see Late payments |
 | `payment.failed` | Rare: we had to stop checking the payment because of an error on our side, or you simulated failed in test mode. Never sent for a decline |
 
@@ -65,7 +65,7 @@ X-KHQRPay-Delivery: c3a8f0d2-61b7-4e95-8d2a-7f4b9e0c1a36
 - A delivery gets up to 9 attempts: the first, then retries 1 m, 5 m, 15 m, 30 m, 1 h, 2 h, 4 h and 8 h apart, about 16 hours in total. Every attempt is signed afresh, so the 5-minute timestamp check still passes. A delivery to a test endpoint gets one attempt and no retries (see [Test mode](https://khqrpay.dev/docs/test-mode)).
 - Events may arrive out of order or more than once. Deduplicate on the event `id`, make fulfilment idempotent, and check the payment’s current status before acting on an older event.
 - Pausing an endpoint stops it: a retry that comes due while it’s paused is marked failed (“Not sent: the endpoint is paused”), and events that happen while it’s paused are never queued. After you turn it back on, use *Retry failed* for the stopped retries and `GET /v1/payments` to catch up on the rest.
-- Use delivery logs to investigate recent attempts; keep your own records if you need a durable audit history.
+- Use delivery logs to investigate recent attempts; keep your own records if you need a durable audit history. For a spreadsheet of a month’s payments, use *Export* on the dashboard’s *Payments* page.
 
 ### Behind Cloudflare or a firewall
 
@@ -91,6 +91,7 @@ import { saveEventOnce } from "./orders.js"; // your code: INSERT … ON CONFLIC
 const app = express();
 
 function verifyKhqrPay(rawBody, header, secret, toleranceSec = 300) {
+  if (!secret) return false; // unset: refuse everything, or anyone could sign with an empty key
   const h = String(header ?? "");
   const t = /(?:^|,)\s*t=(\d{1,12})\s*(?=,|$)/.exec(h)?.[1];
   const v1 = /(?:^|,)\s*v1=([0-9a-fA-F]{64})\s*(?=,|$)/.exec(h)?.[1];
@@ -134,6 +135,7 @@ import crypto from "node:crypto";
 import { saveEventOnce } from "@/lib/orders"; // your code: INSERT … ON CONFLICT (event_id) DO NOTHING
 
 function verifyKhqrPay(rawBody: string, header: string | null | undefined, secret: string, toleranceSec = 300): boolean {
+  if (!secret) return false; // unset: refuse everything, or anyone could sign with an empty key
   const h = String(header ?? "");
   const t = /(?:^|,)\s*t=(\d{1,12})\s*(?=,|$)/.exec(h)?.[1];
   const v1 = /(?:^|,)\s*v1=([0-9a-fA-F]{64})\s*(?=,|$)/.exec(h)?.[1];
@@ -213,6 +215,9 @@ class KhqrPayWebhookController extends Controller
 
     public static function verify(string $raw, string $header, string $secret, int $tolerance = 300): bool
     {
+        if ($secret === '') { // unset: refuse everything, or anyone could sign with an empty key
+            return false;
+        }
         $parts = [];
         foreach (explode(',', $header) as $item) {
             $pair = explode('=', trim($item), 2);
@@ -243,6 +248,8 @@ app = Flask(__name__)
 
 
 def verify_khqrpay(raw: bytes, header: str, secret: str, tolerance: int = 300) -> bool:
+    if not secret:  # unset: refuse everything, or anyone could sign with an empty key
+        return False
     parts = dict(item.strip().split("=", 1) for item in (header or "").split(",") if "=" in item)
     t, v1 = parts.get("t", ""), parts.get("v1", "")
     if not re.fullmatch(r"[0-9]{1,12}", t) or not re.fullmatch(r"[0-9a-fA-F]{64}", v1):
@@ -318,7 +325,17 @@ If the bank approves in that window, the payment moves from `expired` to `paid`,
 - Deduplicate on the event `id`, not the payment id: a handler that skips events for a payment it has already seen drops this one.
 - Try it in test mode: simulate `expired`, then `paid`.
 
-If our checks on a live payment fall more than 5 minutes behind, for example during an outage on our side, the payment gets `monitoring_gap: true`. So does one whose checks with the bank all fail for about a minute (55 seconds from the first failed one) while it can still be paid, before or after `expires_at`. Shorter failures aren’t flagged. So does one the bank answers for with a state we don’t know. ABA only shows an approval while its session is fresh, so a payment made in that gap may never be reported. Webhooks sent after the gap carry the flag too, but setting it sends no event, so a `payment.expired` that went out earlier won’t show it: re-read `GET /v1/payments/:id` before you cancel an order. If the flag is there and the status isn’t `paid`, treat the payment as unknown and check your ABA app. On a paid payment it changes nothing.
+A live payment gets `monitoring_gap: true` when:
+
+- Our checks on it fall more than 5 minutes behind, for example during an outage on our side.
+- Its checks with the bank all fail for about a minute (55 seconds from the first failed one) while it can still be paid, before or after `expires_at`. Shorter failures aren’t flagged.
+- The bank answers for it with a state we don’t know.
+
+ABA only shows an approval while its session is fresh, so a payment made in that gap may never be reported.
+
+- **Webhooks** sent after the gap carry the flag too, but setting it sends no event, so a `payment.expired` that went out earlier won’t show it: re-read `GET /v1/payments/:id` before you cancel an order.
+- **Not paid?** If the flag is there and the status isn’t `paid`, treat the payment as unknown and check your ABA app.
+- **Paid?** On a paid payment it changes nothing.
 
 ABA can report an approval that comes after its 3-minute session: in a test on 3 November 2026, one showed about 4 minutes after the session ended. It read as unpaid again within 5 minutes, so the late watch is designed to catch these payments, not guaranteed to.
 

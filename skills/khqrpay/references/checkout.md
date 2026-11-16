@@ -1,6 +1,12 @@
 # Hosted checkout and QR image
 
-`checkout_url` opens a mobile-first page in your store’s language, Khmer or English, and customers can switch with one tap. It shows the KHQR card with the amount and the bank account holder’s name from the QR (on a converted payment, also your price and the rate), a countdown, live status, your support email and, on phones, an “Open ABA Mobile” button in your brand colour. Your logo and store name appear on payment links (`/l/…`), not here. At 0:00 the QR disappears while we check with the bank for a last-second payment. Every page is served with HSTS and a Content-Security-Policy, and can’t be framed (`X-Frame-Options: DENY`), so link or redirect to the checkout rather than embedding it.
+`checkout_url` opens a mobile-first page in your store’s language, Khmer or English, and customers can switch with one tap. It shows:
+
+- The KHQR card with the amount and the bank account holder’s name from the QR. On a converted payment, also your price and the rate.
+- A countdown, live status and your support email.
+- On phones, an “Open ABA Mobile” button in your brand colour.
+
+Your logo and store name appear on payment links (`/l/…`), not here. At 0:00 the QR disappears while we check with the bank for a last-second payment. Every page is served with HSTS and a Content-Security-Policy, and can’t be framed (`X-Frame-Options: DENY`), so link or redirect to the checkout rather than embedding it.
 
 ### Redirects
 
@@ -12,11 +18,15 @@ Set success and failure URLs (https only) in *Store settings*. When the payment 
 https://shop.example.com/thanks?status=success&payment_id=pFQ3xV8aN2rL7kTm9sB4cWd6hJ1yZ0eU&reference_id=INV-2048
 ```
 
-Treat the redirect as a hint, and confirm with the webhook or `GET /v1/payments/:id` before you fulfil: anyone can type your success URL with these parameters. A checkout opened more than 10 minutes after the payment ended shows how it ended and stays there, so an old link doesn’t send anyone to your site. To test your redirects, keep the test payment’s checkout open while you simulate the result, or open it within 10 minutes. A customer sent to your failure URL can still pay late, so expect a later `payment.completed`. An expired checkout that isn’t sending the customer to your failure URL keeps listening for a late approval until 30 minutes after `expires_at`. That happens when you set no failure URL, or when the checkout was opened more than 10 minutes after the QR expired. If the bank confirms, the checkout switches to paid and sends the customer to your success URL, if you set one.
+- **A hint, not proof.** Confirm with the webhook or `GET /v1/payments/:id` before you fulfil: anyone can type your success URL with these parameters.
+- **Old links.** A checkout opened more than 10 minutes after the payment ended shows how it ended and stays there, so an old link doesn’t send anyone to your site.
+- **Testing.** Keep the test payment’s checkout open while you simulate the result, or open it within 10 minutes.
+- **Late payments.** A customer sent to your failure URL can still pay late, so expect a later `payment.completed`.
+- **Listening after expiry.** An expired checkout that isn’t sending the customer to your failure URL keeps listening for a late approval until 30 minutes after `expires_at`. That happens when you set no failure URL, or when the checkout was opened more than 10 minutes after the QR expired. If the bank confirms, the checkout switches to paid and sends the customer to your success URL, if you set one.
 
 ### Your own payment screen
 
-Render `qr_string` at error-correction level H on white with a quiet zone, show the amount, and count down to `expires_at`, reading it again after a scan because it moves. Hide the QR at 0:00. Poll your own backend, never our API from the browser. Or use the ready-made card below.
+Render `qr_string` at error-correction level H on white with a quiet zone, show the amount, and count down to `expires_at`, reading it again after a scan, which can move it. Hide the QR at 0:00. Poll your own backend, never our API from the browser. Or use the ready-made card below.
 
 ## QR image
 

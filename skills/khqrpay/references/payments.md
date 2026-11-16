@@ -87,7 +87,9 @@ print(payment["checkout_url"])
 
 ### Currency and conversion
 
-Your ABA payment link has one currency, and every QR on it asks for that currency: riel on a KHR link, dollars on a USD link. When the `currency` you send isn’t your link’s, KHQRPay converts the amount at its own fixed rate, currently 4,000 riel per US dollar. KHQRPay sets this rate; it isn’t ABA’s or the National Bank’s. Dollars become whole riel and riel become cents, rounded half up, so 16.88 USD on a KHR link is a 67,520 riel QR:
+Your ABA payment link has one currency, and every QR on it asks for that currency: riel on a KHR link, dollars on a USD link.
+
+When the `currency` you send isn’t your link’s, KHQRPay converts the amount at its own fixed rate, currently 4,000 riel per US dollar. KHQRPay sets this rate; it isn’t ABA’s or the National Bank’s. Dollars become whole riel and riel become cents, rounded half up, so 16.88 USD on a KHR link is a 67,520 riel QR:
 
 **Amount fields: 16.88 USD on a KHR link**
 
@@ -260,5 +262,7 @@ curl "https://khqrpay.dev/v1/payments?status=paid&limit=20&cursor=eyJjcmVhdGVkX2
 ```
 
 `has_more` is true when older payments are left: send `next_cursor` back as `cursor` to get the next page. On the last page, `has_more` is false and `next_cursor` is null. Cursors don’t expire.
+
+**Export to a spreadsheet.** Without code, *Export* on the dashboard’s *Payments* page downloads a CSV file of one Cambodia month: *Every payment* or *Daily totals*, live or test, for one store or all of the account’s stores. Each payment comes with its store, its payment link and its times in Cambodia time (UTC+7). A file holds up to 20,000 payments, newest first.
 
 For AI tools: every docs page is listed in [llms.txt](https://khqrpay.dev/llms.txt).

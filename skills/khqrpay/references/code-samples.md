@@ -77,6 +77,7 @@ $event = \KHQRPay\Webhook::constructEvent($rawBody, $signatureHeader, getenv('KH
 
 ```js
 function verifyKhqrPay(rawBody, header, secret, toleranceSec = 300) {
+  if (!secret) return false; // unset: refuse everything, or anyone could sign with an empty key
   const h = String(header ?? "");
   const t = /(?:^|,)\s*t=(\d{1,12})\s*(?=,|$)/.exec(h)?.[1];
   const v1 = /(?:^|,)\s*v1=([0-9a-fA-F]{64})\s*(?=,|$)/.exec(h)?.[1];
@@ -97,6 +98,7 @@ import { saveEventOnce } from "./orders.js"; // your code: INSERT … ON CONFLIC
 const app = express();
 
 function verifyKhqrPay(rawBody, header, secret, toleranceSec = 300) {
+  if (!secret) return false; // unset: refuse everything, or anyone could sign with an empty key
   const h = String(header ?? "");
   const t = /(?:^|,)\s*t=(\d{1,12})\s*(?=,|$)/.exec(h)?.[1];
   const v1 = /(?:^|,)\s*v1=([0-9a-fA-F]{64})\s*(?=,|$)/.exec(h)?.[1];
@@ -140,6 +142,7 @@ import crypto from "node:crypto";
 import { saveEventOnce } from "@/lib/orders"; // your code: INSERT … ON CONFLICT (event_id) DO NOTHING
 
 function verifyKhqrPay(rawBody: string, header: string | null | undefined, secret: string, toleranceSec = 300): boolean {
+  if (!secret) return false; // unset: refuse everything, or anyone could sign with an empty key
   const h = String(header ?? "");
   const t = /(?:^|,)\s*t=(\d{1,12})\s*(?=,|$)/.exec(h)?.[1];
   const v1 = /(?:^|,)\s*v1=([0-9a-fA-F]{64})\s*(?=,|$)/.exec(h)?.[1];
@@ -219,6 +222,9 @@ class KhqrPayWebhookController extends Controller
 
     public static function verify(string $raw, string $header, string $secret, int $tolerance = 300): bool
     {
+        if ($secret === '') { // unset: refuse everything, or anyone could sign with an empty key
+            return false;
+        }
         $parts = [];
         foreach (explode(',', $header) as $item) {
             $pair = explode('=', trim($item), 2);
@@ -249,6 +255,8 @@ app = Flask(__name__)
 
 
 def verify_khqrpay(raw: bytes, header: str, secret: str, tolerance: int = 300) -> bool:
+    if not secret:  # unset: refuse everything, or anyone could sign with an empty key
+        return False
     parts = dict(item.strip().split("=", 1) for item in (header or "").split(",") if "=" in item)
     t, v1 = parts.get("t", ""), parts.get("v1", "")
     if not re.fullmatch(r"[0-9]{1,12}", t) or not re.fullmatch(r"[0-9a-fA-F]{64}", v1):
