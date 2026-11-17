@@ -41,7 +41,7 @@ Every `/v1` response from KHQRPay is JSON, including `404 not_found` for an unkn
 | `payment_not_found` | 404 | No such payment for this store and mode |
 | `method_not_allowed` | 405 | Wrong HTTP method for the endpoint. The Allow header lists the right ones |
 | `payload_too_large` | 413 | Body over 32 KB |
-| `rate_limited` | 429 | A limit was reached. Wait Retry-After seconds, then retry; when Retry-After is longer than a minute it’s an hour-long or day-long limit, so fail the call instead of waiting. Causes: too many requests; too many QRs open or left unpaid for the day; the account’s reads for the day are used up; very many Free accounts made live QRs this hour (Free only: wait for the next UTC hour; paid plans never do); API keys that don’t exist were looked up over 30 times in a minute from your network (then its calls are refused until the minute ends, except with a key that has worked recently), or very many calls at once from your network used keys not yet seen |
+| `rate_limited` | 429 | A limit was reached. Wait Retry-After seconds, then retry; when Retry-After is longer than a minute it’s an hour-long or day-long limit, so fail the call instead of waiting. Causes: too many requests; too many QRs open or left unpaid for the day; the account’s reads for the day are used up; your Free account, or very many Free accounts together, sent a great many live creates to the bank this hour, refused ones included (Free only: wait for the next UTC hour; paid plans never do); API keys that don’t exist were looked up over 30 times in a minute from your network (then its calls are refused until the minute ends, except with a key that has worked recently), or very many calls at once from your network used keys not yet seen |
 | `internal_error` | 500 | Something broke on our side. Safe to retry with the same Idempotency-Key |
 | `payment_provider_error` | 502 | ABA’s checkout didn’t answer as expected. Safe to retry with the same Idempotency-Key |
 | `temporarily_unavailable` | 503 | We can’t reach our database, or a limit at the edge couldn’t be checked. Wait Retry-After seconds, then retry with the same Idempotency-Key |
@@ -63,7 +63,7 @@ A new Free account has lower day limits until its first real payment: see *New F
 
 ### Every minute
 
-- **Per API key:** 60 creates (simulate included) and 600 reads a minute, in fixed one-minute windows. Successful responses and 429s carry `X-RateLimit-Limit`, `X-RateLimit-Remaining` and `X-RateLimit-Reset` (Unix seconds).
+- **Per API key:** 60 creates (simulate included) and 600 reads a minute, in fixed one-minute windows. Successful responses and 429s carry `X-RateLimit-Limit`, `X-RateLimit-Remaining` and `X-RateLimit-Reset` (Unix seconds), except Free’s busy-hour 429, which carries only `X-RateLimit-Reset` and `Retry-After`.
 - **Network protection:** ahead of the API, up to 6,000 requests a minute get through from one IP address, 700 a minute with one API key (more than the key’s own limits add up to, in the same one-minute windows), and 120 a minute for [QR images](https://khqrpay.dev/docs/checkout#qr). Its 429 carries only `Retry-After`.
 - **Per network, API keys that don’t exist:** once keys we can’t find (made up, mistyped or revoked) are looked up more than 30 times in a minute from one network (an IPv4 address or an IPv6 /64), calls from that network get `429 rate_limited` until the minute ends, with a `Retry-After` to then. A call with a key that works is never counted. A key that has worked recently isn’t held up by its network’s count, and very many calls at once from one network with keys not yet seen get `429 rate_limited`, to retry after `Retry-After`.
 - **Per store:** 120 live creates per minute across all its keys. A 429 from this limit reports the store’s numbers in the `X-RateLimit-*` headers, so it can arrive while your key still has room. Wait `Retry-After` seconds either way.
@@ -87,7 +87,7 @@ A new Free account has lower day limits until its first real payment: see *New F
 - **New Free accounts:** until its first real payment, a Free account can leave 20 unpaid live QRs a day and send 60 live creates a day to the bank by the count above. Its first real payment lifts both to the plan’s numbers for good.
 - **Over the unpaid day:** live creates return `429 rate_limited` with `X-RateLimit-Reset` and `Retry-After` at the day’s end. One of the day’s QRs being paid frees a place at once, and so does an upgrade. Create a QR when the customer chooses to pay, not each time a page loads.
 - **Payment-link QRs** count in a day of their own, the same number across all your links, so visitors on your links can’t use up the day your API and dashboard use. Each link also has caps of its own, per hour and per payer’s network: see [Payment links](https://khqrpay.dev/docs/payment-links#link-limits).
-- **Busy hours on Free:** if very many Free accounts make live QRs at once, Free live creates can also wait for the next hour (`429 rate_limited` with `Retry-After`). Paid plans never do.
+- **Busy hours on Free:** if your account sends very many live creates to the bank in an hour, refused ones included, its live creates can also wait for the next hour (`429 rate_limited` with `Retry-After`), and when very many Free accounts do together, every Free account’s can. Paid plans never do.
 
 ### Reads by size, every day
 
@@ -122,7 +122,7 @@ Only **paid live** payments count toward your plan, over 30-day periods. Open li
 
 - **How you pay:** by KHQR from *Billing*: one payment for 30 days, not a subscription, so nothing renews by itself. Prices are in US dollars. When KHQRPay’s billing link is in riel, the QR asks for riel at KHQRPay’s rate (see [Currency and conversion](https://khqrpay.dev/docs/payments#currency)).
 - **6 and 12 months:** one payment can also buy 6 months for the price of 5.5, or 12 for the price of 10 (a month is 30 days). It gives all those months’ paid transactions at once, to use any time before the plan ends, and `limit` in [Check usage](https://khqrpay.dev/docs/errors-and-limits#usage) shows them.
-- **The plan checkout** says it’s for your KHQRPay plan, with a *Back to billing* link and, if the QR expires, *Get a new QR*. The plan’s name and invoice number are in *Billing*.
+- **The plan checkout** has a *Back to billing* link and, if the QR expires, *Get a new QR*. The plan’s name and invoice number are in *Billing*.
 - **Approved late:** a plan payment the bank approves late still counts. It activates the plan, or is added as plan time if it no longer matches its quote (see [Check usage](https://khqrpay.dev/docs/errors-and-limits#usage)).
 
 ## Check usage

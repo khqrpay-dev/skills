@@ -77,11 +77,11 @@ In the [payment object](https://khqrpay.dev/docs/payments#object), as webhooks a
 | Unpaid QRs in an hour, in all | QRs left unpaid on this link this hour | The link can’t take new payments until the time shown (see A full link) |
 | Presses of *Continue to pay* in a minute | Presses from one network, on this link and on all links, and from everyone across the store’s links | Too many tries: wait a minute |
 
-- **Busy hours on Free.** On Free, links can also wait for the next hour when very many Free accounts are making live QRs at once; paid plans never do.
+- **Busy hours on Free.** On Free, links can also wait for the next hour when your links have sent very many QR requests to the bank in the hour, refused ones included, or very many Free accounts are making them at once. All your links count together, so a new link waits too. Your links’ hour is kept apart from your own API and dashboard creates, so visitors on your links can’t use those up. Paid plans never wait.
 - **A full link.** Once a link has had as many QRs left unpaid in an hour as it allows, it turns new payers away until the next hour, and its page says until when. A QR that’s paid frees its place. Real buyers usually pay, so someone may be flooding the link: deactivate it, and share a new one if you need one.
-- **Who hears about it.** A Telegram group linked to the store hears it once a day for that link, as “Payment link full”.
+- **Who hears about it.** On a paid plan, a Telegram group linked to the store hears it once a day for that link, headed “Payment link full until” and the hour it takes payments again, in Cambodia time, or “Payment links full for today” when all your links are full too.
 - **All your links full.** Once your links together have left the day’s unpaid QRs (see [Rate limits](https://khqrpay.dev/docs/errors-and-limits#limits)), every link turns new payers away, and a new link would too, until one of those QRs is paid or the day starts again in the morning, Cambodia time. The payer is told the shop’s payment links can’t take more payments today.
-- **On Free** a full link usually means all your links are full, since the two fill together, and the group’s notice says “Payment links full for today”.
+- **On Free** the store’s Telegram group isn’t told when your links wait for the next hour or are full for the day: only the payment page says so, to the payer.
 
 ## Deactivating a link
 
