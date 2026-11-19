@@ -4,7 +4,8 @@
 
 - The KHQR card with the amount and the bank account holder’s name from the QR. On a converted payment, also your price and the rate.
 - A countdown, live status and your support email.
-- On phones, an “Open ABA Mobile” button in your brand colour.
+- On phones, an “Open ABA Mobile” button in your brand colour, on live payments.
+- A “Save QR image” button that saves the whole KHQR card as a PNG, for a customer who pays from another bank’s app. On an iPhone it opens the Share menu. Inside some apps’ own browsers it saves the QR alone.
 
 Your logo and store name appear on payment links (`/l/…`), not here. At 0:00 the QR disappears while we check with the bank for a last-second payment. Every page is served with HSTS and a Content-Security-Policy, and can’t be framed (`X-Frame-Options: DENY`), so link or redirect to the checkout rather than embedding it.
 

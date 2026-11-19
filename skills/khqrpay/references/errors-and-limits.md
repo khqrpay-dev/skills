@@ -116,7 +116,7 @@ Only **paid live** payments count toward your plan, over 30-day periods. Open li
 | Plan | Price / 30 days | Paid transactions | Stores |
 | --- | --- | --- | --- |
 | Free | Free | 100 | 3 |
-| Starter | $5 | 1,000 | 10 |
+| Starter | $7 | 1,000 | 10 |
 | Pro | $25 | 7,500 | 25 |
 | Scale | $49 | 20,000 | 100 |
 | Enterprise | Contact us | By agreement | By agreement |
@@ -166,7 +166,7 @@ curl https://khqrpay.dev/v1/usage \
 - **Payment-link QRs** count open payment-link QRs as well, so visitors opening your links can’t stop your own API and dashboard creates.
 - **Free, per ABA account:** Free transactions are also counted per ABA account each calendar month (Cambodia time), apart from your own 30-day period. The account is the one a link’s QRs pay into, so every payment link of one ABA account, in any Free account, shares those 100. Your own open live QRs on it count against them too, the same ones as above.
 - **When the ABA account’s month is used:** live creates return `402 quota_exceeded` until the 1st of the next month, even while `remaining` is above 0 and even if yours is the only account using it.
-- **A link that pays another ABA account:** on every plan, a live QR that would pay a different ABA account from the one KHQRPay learned for the store’s link is refused before it’s saved, with `400 payment_link_disabled`, and the store’s Telegram group is told. Connect the link again in Store settings if the account really changed.
+- **A link that pays another ABA account:** on every plan, a live QR that would pay a different ABA account from the one KHQRPay learned for the store’s link is refused before it’s saved, with `400 payment_link_disabled`, and the store’s Telegram group is told. Connect the link again in Store settings if the account really changed. If ABA gives KHQRPay no QR to check at that moment, the refusal stays: wait a few minutes, then connect it again.
 
 ### Plans and periods
 
