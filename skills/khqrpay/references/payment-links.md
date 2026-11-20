@@ -34,7 +34,7 @@ The link’s page shows the store’s logo and name, the link’s title and desc
 
 Posted in a chat, a link shows a preview: the link’s title and the store’s name; the link’s description or, when it has none, a line asking to pay the store with any Cambodian banking app, in the store’s language; and a card with the price, or “Scan to pay” for a link without one. Search engines are asked not to index link pages.
 
-If KHQRPay blocks an account, for example after a report, its links answer as unknown pages, previews included.
+If KHQRPay blocks an account or pauses a store or link, affected public link pages and their previews appear unavailable.
 
 ## Amounts and currency
 
