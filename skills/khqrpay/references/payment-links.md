@@ -30,7 +30,7 @@ Each link in the list has *Copy link*, which copies its address, and *Details*, 
 
 The link’s page shows the store’s logo and name, the link’s title and description, the price or a field for the amount, and *Continue to pay* in the store’s brand colour, with *Report this page* at the foot. It opens in the store’s default checkout language, Khmer or English, unless the payer chose one before, and they can switch with one tap.
 
-*Continue to pay* first runs a person check from Cloudflare, which stays invisible unless Cloudflare needs the payer to do something. Then it opens the [hosted checkout](https://khqrpay.dev/docs/checkout) with a new KHQR: the same page an API payment opens. A payer who presses it again for the same amount while that QR is still open is sent back to it instead of getting another.
+*Continue to pay* first runs a quick person check, which stays invisible unless the payer needs to do something. Then it opens the [hosted checkout](https://khqrpay.dev/docs/checkout) with a new KHQR: the same page an API payment opens. A payer who presses it again for the same amount while that QR is still open is sent back to it instead of getting another.
 
 Posted in a chat, a link shows a preview: the link’s title and the store’s name; the link’s description or, when it has none, a line asking to pay the store with any Cambodian banking app, in the store’s language; and a card with the price, or “Scan to pay” for a link without one. Search engines are asked not to index link pages.
 

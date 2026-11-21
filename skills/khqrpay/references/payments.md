@@ -89,7 +89,7 @@ print(payment["checkout_url"])
 
 Your ABA payment link has one currency, and every QR on it asks for that currency: riel on a KHR link, dollars on a USD link.
 
-When the `currency` you send isn’t your link’s, KHQRPay converts the amount at its own fixed rate, currently 4,000 riel per US dollar. KHQRPay sets this rate; it isn’t ABA’s or the National Bank’s. Dollars become whole riel and riel become cents, rounded half up, so 16.88 USD on a KHR link is a 67,520 riel QR:
+When the `currency` you send isn’t your link’s, KHQRPay converts the amount at its own rate, 4,000 riel per US dollar by default. KHQRPay sets this rate and can change it; it isn’t ABA’s or the National Bank’s. Dollars become whole riel and riel become cents, rounded half up, so 16.88 USD on a KHR link is a 67,520 riel QR:
 
 **Amount fields: 16.88 USD on a KHR link**
 
@@ -131,7 +131,7 @@ Your link’s maximum applies to the converted amount, in the link’s currency.
 
 ## The payment object
 
-Create and retrieve return every field below, and [list](https://khqrpay.dev/docs/payments#list) items leave out `metadata`. Webhooks carry a subset in `data.payment`: id, status, amount, currency, requested_amount, requested_currency, settlement_amount, settlement_currency, conversion_rate, reference_id, metadata and approved_at, plus `late` on [late payments](https://khqrpay.dev/docs/webhooks#late) and `monitoring_gap` on webhooks sent after a [gap in our checks](https://khqrpay.dev/docs/webhooks#late).
+Create and retrieve return every field below, and [list](https://khqrpay.dev/docs/payments#list) items leave out `metadata`. Webhooks carry a subset in `data.payment`: id, status, amount, currency, requested_amount, requested_currency, settlement_amount, settlement_currency, conversion_rate, reference_id, metadata and approved_at, plus `late` on [late payments](https://khqrpay.dev/docs/webhooks#late) and `monitoring_gap` on events created after a [gap in our checks](https://khqrpay.dev/docs/webhooks#late) was flagged (retries and resends of earlier events don’t carry it).
 
 **Payment object (live, just created)**
 

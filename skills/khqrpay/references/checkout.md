@@ -46,7 +46,7 @@ Rendered live from a test QR, which banks won’t pay. [Open the SVG](https://kh
 | `Access-Control-Allow-Origin` | \* |
 | `Content-Security-Policy` | default-src 'none'; style-src 'unsafe-inline'; img-src data: |
 | Rate limit | 120 renders per minute per IP. Repeats served from a CDN or browser cache don’t count. Over it: 429 rate_limited with Retry-After |
-| Errors | 400 invalid_khqr: bad CRC, malformed TLV, missing required tags or over 512 characters. Cloudflare answers broken percent-encoding itself, with its own 400 page |
+| Errors | 400 invalid_khqr: bad CRC, malformed TLV, missing required tags or over 512 characters. Broken percent-encoding gets a plain 400 HTML page before it reaches the API |
 
 End the path in `.png` instead for the QR alone, about 800 pixels square, black on white with a quiet zone. Bank apps’ “scan from photo” pickers can open it and can’t open an SVG, so it’s the one to offer a customer paying on their own phone. The same cache, CORS header, limit and errors apply.
 

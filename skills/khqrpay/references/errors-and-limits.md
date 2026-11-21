@@ -10,7 +10,7 @@ Errors return an HTTP status and a JSON body with a machine-readable `error` cod
 
 Every `/v1` response from KHQRPay is JSON, including `404 not_found` for an unknown path and `405 method_not_allowed` (with an `Allow` header) for a wrong method. Three things aren’t:
 
-- A URL with broken percent-encoding, such as `%ZZ`: Cloudflare answers with its own `400` HTML page before it reaches us.
+- A URL with broken percent-encoding, such as `%ZZ`: it gets a plain `400` HTML page before it reaches us.
 - A trailing slash, as in `/v1/payments/`: a `308` redirect to the same path without it.
 - `OPTIONS`: an empty `204`.
 
@@ -22,18 +22,19 @@ Every `/v1` response from KHQRPay is JSON, including `404 not_found` for an unkn
 
 | Code | HTTP | When |
 | --- | --- | --- |
-| `invalid_request` | 400 | The body isn’t valid JSON, a field failed validation (the message names it), or the Idempotency-Key header is over 255 characters |
+| `invalid_request` | 400 | The body isn’t valid JSON, a field failed validation (the message names it), the Idempotency-Key header is over 255 characters, or simulate was called with a kp_live_ key |
 | `invalid_amount` | 400 | amount isn’t a number (for example "abc"), a USD amount has more than 2 decimals, or a KHR amount isn’t whole riel |
-| `amount_too_low` | 400 | amount is below 0.01 USD or 1 KHR, or a KHR amount on a USD link converts to less than 0.01 USD (see Currency and conversion) |
-| `amount_too_high` | 400 | Above your ABA link’s maximum, checked after conversion, in the link’s currency |
+| `amount_too_low` | 400 | amount is zero or negative, or a KHR amount on a USD link converts to less than 0.01 USD (see Currency and conversion) |
+| `amount_too_high` | 400 | Above your ABA link’s maximum, checked after conversion, in the link’s currency, or 100,000,000,000 or more |
 | `idempotency_conflict` | 400 | Idempotency-Key reused within 24 h with different requested or settlement details, or a different reference_id |
 | `invalid_status` | 400 | Unknown status in the list filter |
 | `invalid_cursor` | 400 | The list cursor is malformed. Send next_cursor back exactly as you got it |
 | `payment_link_disabled` | 400 | The store’s live payments are paused, ABA disabled the payment link or its KHQR, or the link’s currency changed in ABA since you connected it, or its QRs now pay a different ABA account from the one KHQRPay learned for it (connect it again in Store settings) |
 | `invalid_khqr` | 400 | The QR image endpoint got a malformed payload or a bad CRC |
 | `account_blocked` | 403 | Account access is suspended; contact support |
+| `account_held` | 403 | New live payments are on hold for up to 24 hours after unusual activity (such as an API key blocked for excess traffic) from an account with no paid payment yet. Test mode, reads and checkouts already open keep working. The message says when it ends; contact support |
 | `api_key_blocked` | 403 | API key blocked after sustained excessive traffic; contact support |
-| `https_required` | 403 | The call used plain http. API calls aren’t redirected, so a POST can’t turn into a GET: send it to https://khqrpay.dev |
+| `https_required` | 403 | The call used plain http to khqrpay.dev. API calls there aren’t redirected, so a POST can’t turn into a GET. Calls to www.khqrpay.dev get a 308 to khqrpay.dev, and many clients drop the Authorization header on that redirect. Send every call to https://khqrpay.dev |
 | `unauthorized` | 401 | Missing bearer token, or an invalid or revoked API key |
 | `quota_exceeded` | 402 | Your plan’s paid-transaction limit for this period is reached, or, on Free, the ABA account the store’s link pays into has used this month’s Free transactions, counted across all of that account’s payment links. Open live QRs that hold a place for this create count toward both (see /docs/errors-and-limits#usage). Live payments only |
 | `not_found` | 404 | No such /v1 endpoint |
@@ -41,7 +42,7 @@ Every `/v1` response from KHQRPay is JSON, including `404 not_found` for an unkn
 | `payment_not_found` | 404 | No such payment for this store and mode |
 | `method_not_allowed` | 405 | Wrong HTTP method for the endpoint. The Allow header lists the right ones |
 | `payload_too_large` | 413 | Body over 32 KB |
-| `rate_limited` | 429 | A limit was reached. Wait Retry-After seconds, then retry; when Retry-After is longer than a minute it’s an hour-long or day-long limit, so fail the call instead of waiting. Causes: too many requests; too many QRs open or left unpaid for the day; the account’s reads for the day are used up; your Free account, or very many Free accounts together, sent a great many live creates to the bank this hour, refused ones included (Free only: wait for the next UTC hour; paid plans never do); API keys that don’t exist were looked up over 30 times in a minute from your network (then its calls are refused until the minute ends, except with a key that has worked recently), or very many calls at once from your network used keys not yet seen |
+| `rate_limited` | 429 | A limit was reached. Wait Retry-After seconds, then retry; when Retry-After is longer than a minute it’s an hour-long or day-long limit, so fail the call instead of waiting. Causes: too many requests; too many QRs open, left unpaid or sent to the bank for the day; too many test creates for the day; the edge’s limit per network or per API key; the account’s reads for the day are used up; your Free account, or very many Free accounts together, sent a great many live creates to the bank this hour, refused ones included (Free only: wait for the next UTC hour; paid plans never do); API keys that don’t exist or were revoked were looked up over 30 times in a minute from your network (then its calls are refused until the minute ends, except with a key that has worked recently), or very many calls at once from your network used keys not yet seen |
 | `internal_error` | 500 | Something broke on our side. Safe to retry with the same Idempotency-Key |
 | `payment_provider_error` | 502 | ABA’s checkout didn’t answer as expected. Safe to retry with the same Idempotency-Key |
 | `temporarily_unavailable` | 503 | We can’t reach our database, or a limit at the edge couldn’t be checked. Wait Retry-After seconds, then retry with the same Idempotency-Key |
@@ -64,7 +65,7 @@ A new Free account has lower day limits until its first real payment: see *New F
 ### Every minute
 
 - **Per API key:** 60 creates (simulate included) and 600 reads a minute, in fixed one-minute windows. Successful responses and 429s carry `X-RateLimit-Limit`, `X-RateLimit-Remaining` and `X-RateLimit-Reset` (Unix seconds), except Free’s busy-hour 429, which carries only `X-RateLimit-Reset` and `Retry-After`.
-- **Network protection:** ahead of the API, up to 6,000 requests a minute get through from one IP address, 700 a minute with one API key (more than the key’s own limits add up to, in the same one-minute windows), and 120 a minute for [QR images](https://khqrpay.dev/docs/checkout#qr). Its 429 carries only `Retry-After`.
+- **Network protection:** ahead of the API, up to 6,000 requests a minute get through from one network (an IPv4 address or an IPv6 /64), 700 a minute with one API key from any network (more than the key’s own limits add up to, in the same one-minute windows), and 120 a minute for [QR images](https://khqrpay.dev/docs/checkout#qr). Its 429 carries only `Retry-After`.
 - **Per network, API keys that don’t exist:** once keys we can’t find (made up, mistyped or revoked) are looked up more than 30 times in a minute from one network (an IPv4 address or an IPv6 /64), calls from that network get `429 rate_limited` until the minute ends, with a `Retry-After` to then. A call with a key that works is never counted. A key that has worked recently isn’t held up by its network’s count, and very many calls at once from one network with keys not yet seen get `429 rate_limited`, to retry after `Retry-After`.
 - **Per store:** 120 live creates per minute across all its keys. A 429 from this limit reports the store’s numbers in the `X-RateLimit-*` headers, so it can arrive while your key still has room. Wait `Retry-After` seconds either way.
 - **Per account, lists:** 60 [list](https://khqrpay.dev/docs/payments#list) requests a minute across all its stores and keys. List responses report whichever of this limit, your key’s and the account’s reads you’re closest to, and a 429 from this limit reports the account’s numbers.
